@@ -161,6 +161,7 @@ class GroupShaderConfiguration extends ShaderConfiguration {
     return result;
   }
 
+ 
   /// Exports the shader configuration directly to ByteData without creating intermediate Image objects
   Future<ByteData> exportToByteData(
     TextureSource texture,
@@ -169,7 +170,10 @@ class GroupShaderConfiguration extends ShaderConfiguration {
     if (_configurations.isEmpty) {
       throw UnsupportedError('Group is empty');
     }
-    late ByteData data;
+    
+    late Image result;
+    ByteData? data;
+    
     for (final configuration in _configurations) {
       final uniforms = _cacheUniforms[configuration];
       if (uniforms != null) {
@@ -191,12 +195,17 @@ class GroupShaderConfiguration extends ShaderConfiguration {
         texture,
         size,
       ));
+      
       if (_configurations.length > 1) {
         data = await result.toByteData(format: ImageByteFormat.rawUnmodified);
-        _cache[configuration] = texture.image;
+        
+        texture = TextureSource.fromImage(result);
       }
     }
-    return data;
+    
+    // Convert final result to byte data if not already converted
+    return data ?? await result.toByteData(format: ImageByteFormat.rawUnmodified)
+      ?? (throw UnsupportedError('Failed to convert image to byte data'));
   }
 }
 
