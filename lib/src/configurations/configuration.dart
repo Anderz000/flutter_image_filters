@@ -192,7 +192,7 @@ class GroupShaderConfiguration extends ShaderConfiguration {
         size,
       ));
       if (_configurations.length > 1) {
-        data = await result.toByteData(format: ImageByteFormat.jpg);
+        data = await result.toByteData(format: ImageByteFormat.rawUnmodified);
         _cache[configuration] = texture.image;
       }
     }
