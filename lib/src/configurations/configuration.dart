@@ -160,6 +160,44 @@ class GroupShaderConfiguration extends ShaderConfiguration {
     }
     return result;
   }
+
+  /// Exports the shader configuration directly to ByteData without creating intermediate Image objects
+  Future<ByteData> exportToByteData(
+    TextureSource texture,
+    Size size,
+  ) async {
+    if (_configurations.isEmpty) {
+      throw UnsupportedError('Group is empty');
+    }
+    late ByteData data;
+    for (final configuration in _configurations) {
+      final uniforms = _cacheUniforms[configuration];
+      if (uniforms != null) {
+        final changed = !listEquals(uniforms, configuration._floats);
+        if (changed) {
+          bool found = false;
+          for (final c in _configurations) {
+            if (c == configuration) {
+              found = true;
+            }
+            if (found) {
+              _cache.remove(c);
+            }
+          }
+        }
+      }
+      _cacheUniforms[configuration] = [...configuration._floats];
+      result = (_cache[configuration] ??= await configuration.export(
+        texture,
+        size,
+      ));
+      if (_configurations.length > 1) {
+        data = await result.toByteData(format: ImageByteFormat.jpg);
+        _cache[configuration] = texture.image;
+      }
+    }
+    return data;
+  }
 }
 
 class BunchShaderConfiguration extends ShaderConfiguration {
