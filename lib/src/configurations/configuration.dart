@@ -84,6 +84,8 @@ class GroupShaderConfiguration extends ShaderConfiguration {
 
   GroupShaderConfiguration({this.reimportImage = false}) : super(<double>[]);
 
+  get configurations => _configurations;
+
   @override
   FragmentProgram? get _internalProgram => _configuration._internalProgram;
 
