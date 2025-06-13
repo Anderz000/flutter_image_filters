@@ -65,7 +65,7 @@ class ImageShaderPreview extends StatelessWidget {
         }
         final shaderProgram = configuration._internalProgram;
         if (shaderProgram == null) {
-          return const CircularProgressIndicator();
+          return const SizedBox.shrink();
         }
         if (fix == BoxFit.contain) {
           return AspectRatio(
