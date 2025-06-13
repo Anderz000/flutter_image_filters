@@ -25,7 +25,7 @@ class PipelineImageShaderPreview extends StatelessWidget {
         }
         final image = snapshot.data;
         if (image == null) {
-          return const CircularProgressIndicator();
+          return SizedBox.shrink();
         }
         return RawImage(image: image);
       }),
