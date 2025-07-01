@@ -40,10 +40,16 @@ Future<void> main(List<String> arguments) async {
     String? filters;
     for (int i = 0; i < arguments.length; i++) {
       final arg = arguments[i];
+
+       if (arg == '--glsl-root') {
+        glslRoot = arguments[i + 1];
+      }
+
+  
       if (arg == '--glsl-output') {
         glslOutput = arguments[i + 1];
       }
-      if (arg == '--glsl-root') {
+      if (arg == '--glsl-custom') {
         glslCustomRoot = arguments[i + 1];
       }
       if (arg == '--filters') {
@@ -80,6 +86,9 @@ Future<void> main(List<String> arguments) async {
     );
     stdout.writeln(
       '\t--glsl-root\t\t\tFolder where to found original glsl sources',
+    );
+    stdout.writeln(
+      '\t--glsl-custom\t\t\tFolder where to found custom glsl sources',
     );
     stdout.writeln(
       '\t--glsl-output\t\t\tDestination folder for file shader source',
