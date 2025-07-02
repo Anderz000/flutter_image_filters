@@ -64,10 +64,41 @@ abstract class ShaderConfiguration extends FilterConfiguration {
     final painter = ImageShaderPainter(fragmentProgram, texture, this);
 
     painter.paint(canvas, size);
-    Image renderedImage = await recorder
-        .endRecording()
-        .toImage(size.width.floor(), size.height.floor());
+    Image renderedImage = await recorder.endRecording().toImage(size.width.floor(), size.height.floor());
     return renderedImage;
+  }
+
+  /// Exports the shader configuration directly to ByteData without creating intermediate Image objects
+  Future<ByteData> exportToByteData(
+    TextureSource texture,
+    Size size,
+  ) async {
+    if (!ready) {
+      await prepare();
+    }
+
+    final fragmentProgram = _internalProgram;
+    if (fragmentProgram == null) {
+      throw UnsupportedError('Invalid shader for $runtimeType');
+    }
+
+    // Create a PictureRecorder and Canvas to render the shader
+    final recorder = PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Use the ImageShaderPainter to paint the shader
+    final painter = ImageShaderPainter(fragmentProgram, texture, this);
+    painter.paint(canvas, size);
+
+    // Render the image and convert it to ByteData
+    final renderedImage = await recorder.endRecording().toImage(size.width.floor(), size.height.floor());
+
+    final byteData = await renderedImage.toByteData(format: ImageByteFormat.rawUnmodified);
+    if (byteData == null) {
+      throw UnsupportedError('Failed to convert image to byte data');
+    }
+
+    return byteData;
   }
 
   /// Returns all shader parameters
@@ -163,7 +194,6 @@ class GroupShaderConfiguration extends ShaderConfiguration {
     return result;
   }
 
- 
   /// Exports the shader configuration directly to ByteData without creating intermediate Image objects
   Future<ByteData> exportToByteData(
     TextureSource texture,
@@ -172,10 +202,10 @@ class GroupShaderConfiguration extends ShaderConfiguration {
     if (_configurations.isEmpty) {
       throw UnsupportedError('Group is empty');
     }
-    
+
     late Image result;
     ByteData? data;
-    
+
     for (final configuration in _configurations) {
       final uniforms = _cacheUniforms[configuration];
       if (uniforms != null) {
@@ -197,17 +227,16 @@ class GroupShaderConfiguration extends ShaderConfiguration {
         texture,
         size,
       ));
-      
+
       if (_configurations.length > 1) {
         data = await result.toByteData(format: ImageByteFormat.rawUnmodified);
-        
+
         texture = TextureSource.fromImage(result);
       }
     }
-    
+
     // Convert final result to byte data if not already converted
-    return data ?? await result.toByteData(format: ImageByteFormat.rawUnmodified)
-      ?? (throw UnsupportedError('Failed to convert image to byte data'));
+    return data ?? await result.toByteData(format: ImageByteFormat.rawUnmodified) ?? (throw UnsupportedError('Failed to convert image to byte data'));
   }
 }
 
@@ -215,21 +244,17 @@ class BunchShaderConfiguration extends ShaderConfiguration {
   final List<ShaderConfiguration> _configurations;
 
   @override
-  Iterable<double> get numUniforms =>
-      _configurations.map((e) => e.numUniforms).expand((e) => e);
+  Iterable<double> get numUniforms => _configurations.map((e) => e.numUniforms).expand((e) => e);
 
   @override
   bool get needRedraw => _configurations.map((e) => e.needRedraw).any((e) => e);
 
   BunchShaderConfiguration(this._configurations) : super(<double>[]);
 
-  T configuration<T extends ShaderConfiguration>({required int at}) =>
-      _configurations[at] as T;
+  T configuration<T extends ShaderConfiguration>({required int at}) => _configurations[at] as T;
 
-  Iterable<T> configurations<T extends ShaderConfiguration>() =>
-      _configurations.whereType<T>();
+  Iterable<T> configurations<T extends ShaderConfiguration>() => _configurations.whereType<T>();
 
   @override
-  List<ConfigurationParameter> get parameters =>
-      _configurations.map((e) => e.parameters).expand((e) => e).toList();
+  List<ConfigurationParameter> get parameters => _configurations.map((e) => e.parameters).expand((e) => e).toList();
 }
