@@ -68,38 +68,6 @@ abstract class ShaderConfiguration extends FilterConfiguration {
     return renderedImage;
   }
 
-  /// Exports the shader configuration directly to ByteData without creating intermediate Image objects
-  Future<ByteData> exportToByteData(
-    TextureSource texture,
-    Size size,
-  ) async {
-    if (!ready) {
-      await prepare();
-    }
-
-    final fragmentProgram = _internalProgram;
-    if (fragmentProgram == null) {
-      throw UnsupportedError('Invalid shader for $runtimeType');
-    }
-
-    // Create a PictureRecorder and Canvas to render the shader
-    final recorder = PictureRecorder();
-    final canvas = Canvas(recorder);
-
-    // Use the ImageShaderPainter to paint the shader
-    final painter = ImageShaderPainter(fragmentProgram, texture, this);
-    painter.paint(canvas, size);
-
-    // Render the image and convert it to ByteData
-    final renderedImage = await recorder.endRecording().toImage(size.width.floor(), size.height.floor());
-
-    final byteData = await renderedImage.toByteData(format: ImageByteFormat.rawUnmodified);
-    if (byteData == null) {
-      throw UnsupportedError('Failed to convert image to byte data');
-    }
-
-    return byteData;
-  }
 
   /// Returns all shader parameters
   @override
@@ -194,50 +162,7 @@ class GroupShaderConfiguration extends ShaderConfiguration {
     return result;
   }
 
-  /// Exports the shader configuration directly to ByteData without creating intermediate Image objects
-  Future<ByteData> exportToByteData(
-    TextureSource texture,
-    Size size,
-  ) async {
-    if (_configurations.isEmpty) {
-      throw UnsupportedError('Group is empty');
-    }
 
-    late Image result;
-    ByteData? data;
-
-    for (final configuration in _configurations) {
-      final uniforms = _cacheUniforms[configuration];
-      if (uniforms != null) {
-        final changed = !listEquals(uniforms, configuration._floats);
-        if (changed) {
-          bool found = false;
-          for (final c in _configurations) {
-            if (c == configuration) {
-              found = true;
-            }
-            if (found) {
-              _cache.remove(c);
-            }
-          }
-        }
-      }
-      _cacheUniforms[configuration] = [...configuration._floats];
-      result = (_cache[configuration] ??= await configuration.export(
-        texture,
-        size,
-      ));
-
-      if (_configurations.length > 1) {
-        data = await result.toByteData(format: ImageByteFormat.rawUnmodified);
-
-        texture = TextureSource.fromImage(result);
-      }
-    }
-
-    // Convert final result to byte data if not already converted
-    return data ?? await result.toByteData(format: ImageByteFormat.rawUnmodified) ?? (throw UnsupportedError('Failed to convert image to byte data'));
-  }
 }
 
 class BunchShaderConfiguration extends ShaderConfiguration {
